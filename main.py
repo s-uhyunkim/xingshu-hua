@@ -17,7 +17,7 @@ class SignaturePad(BaseModel):
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-SIGNATURE_PAD = None
+canvas = None
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -29,11 +29,20 @@ async def read_root(request: Request):
 
 @app.post("/signature-pad-data")
 async def get_data(signature_pad: SignaturePad):
-    global SIGNATURE_PAD
-    SIGNATURE_PAD = signature_pad
+    global canvas
+    canvas = signature_pad
+    collapse_signature_pad()
     return RedirectResponse(url="/output", status_code=302)
 
 @app.get("/output")
 async def read_output(request: Request):
     """Return a ``Coroutine`` of the ``output.html`` template and the ``request`` and ``signature_pad`` values."""
-    return templates.TemplateResponse("output.html", {"request": request, "signature_pad": SIGNATURE_PAD})
+    return templates.TemplateResponse("output.html", {"request": request, "signature_pad": canvas})
+
+def collapse_signature_pad():
+    global canvas
+    if canvas is None or len(canvas.array) < 2:
+        return
+
+    canvas.array[0]["points"] += canvas.array[1]["points"]
+    canvas.array.pop(1)

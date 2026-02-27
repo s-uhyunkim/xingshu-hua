@@ -3,5 +3,8 @@
 {% block output %}
     <details open>
         <code>{{ signature_pad }}</code>
+        <script>
+            signaturePad.fromData({{ signature_pad.array | safe}});
+        </script>
     </details>
 {% endblock %}
