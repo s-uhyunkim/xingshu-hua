@@ -3,12 +3,10 @@ const signaturePad = new SignaturePad(canvas);
 const connectStrokeButton = document.getElementById("connect-strokes");
 
 connectStrokeButton.addEventListener("click", async () => {
-    console.log(signaturePad.toData());
-
     const response = await fetch("/signature-pad-data", {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({array: signaturePad.toData()})
+        body: JSON.stringify({signature_pad: signaturePad.toData()})
     });
 
     if (!response.ok)
