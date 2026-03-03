@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 
 class SignaturePad(BaseModel):
-    array: List[Dict[str, Any]] = Field(default_factory=list) # never rename var! I don't know why other names don't work
+    strokes: List[Dict[str, Any]] = Field(default_factory=list) # never rename var! I don't know why other names don't work
     # "= []" or "= Field(default=[])" work, but `default_factory` is recommended for explicit, instance-unique defaults
 
 app = FastAPI()
@@ -31,7 +31,7 @@ async def read_root(request: Request):
 async def get_data(signature_pad: SignaturePad):
     global g_signature_pad
     g_signature_pad = signature_pad
-    collapse_signature_pad()
+    collapse_strokes()
     return RedirectResponse(url="/output", status_code=302)
 
 @app.get("/output")
@@ -39,9 +39,9 @@ async def read_output(request: Request):
     """Return a ``Coroutine`` of the ``output.html`` template and the ``request`` and ``signature_pad`` values."""
     return templates.TemplateResponse("output.html", {"request": request, "signature_pad": g_signature_pad})
 
-def collapse_signature_pad():
+def collapse_strokes():
     global g_signature_pad
-    strokes = g_signature_pad.array
+    strokes = g_signature_pad.strokes
 
     if g_signature_pad is None or len(strokes) < 2:
         return

@@ -6,7 +6,7 @@ connectStrokeButton.addEventListener("click", async () => {
     const response = await fetch("/signature-pad-data", {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({signature_pad: signaturePad.toData()})
+        body: JSON.stringify({ strokes : signaturePad.toData() })
     });
 
     if (!response.ok)
