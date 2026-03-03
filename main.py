@@ -5,10 +5,10 @@
 from typing import List, Dict, Any
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
+from scipy.spatial import KDTree
 
 
 class SignaturePad(BaseModel):
@@ -18,6 +18,7 @@ class SignaturePad(BaseModel):
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 g_signature_pad = None
+distance = 200.0
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -27,12 +28,20 @@ async def read_root(request: Request):
     """Return a ``Coroutine`` of the ``index.html`` template and the ``request`` value."""
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/signature-pad-data")
-async def get_data(signature_pad: SignaturePad):
+@app.post("/strokes")
+async def get_strokes(signature_pad: SignaturePad):
+    print(signature_pad)
     global g_signature_pad
     g_signature_pad = signature_pad
     collapse_strokes()
-    return RedirectResponse(url="/output", status_code=302)
+    return signature_pad
+
+@app.post("/merges")
+async def get_merges(signature_pad: SignaturePad):
+    global g_signature_pad
+    g_signature_pad = signature_pad
+    merge_strokes()
+    return signature_pad
 
 @app.get("/output")
 async def read_output(request: Request):
@@ -47,5 +56,31 @@ def collapse_strokes():
         return
 
     for i in range(1, len(strokes)):
-        strokes[0]["points"] += strokes[1]["points"]
+        strokes[0]["points"].extend(strokes[1]["points"])
         strokes.pop(1)
+
+def merge_strokes():
+    global g_signature_pad, distance
+    strokes = g_signature_pad.strokes
+
+    if g_signature_pad is None or len(strokes) < 2:
+        return
+
+    point = None
+    points = []
+
+    for i in range(len(strokes)):
+        point = strokes[i]["points"][0]
+        points.append([point['x'], point['y']])
+        point = strokes[i]["points"][-1]
+        points.append([point['x'], point['y']])
+
+    tree = KDTree(points)
+    index = 0
+
+    for point in points:
+        _, index = tree.query(point, 2)#, 1, 0.0, 2.0, distance)
+        print(index)
+
+    print(points)
+    return index
