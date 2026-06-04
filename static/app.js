@@ -15,9 +15,9 @@ connectStrokes.addEventListener("click", async () => {
     window.location.href = "/output";
 });
 
-const mergeStrokes = document.getElementById("merge-strokes");
-mergeStrokes.addEventListener("click", async () => {
-    const response = await fetch("/merges", {
+const reorderStrokes = document.getElementById("reorder-strokes");
+reorderStrokes.addEventListener("click", async () => {
+    const response = await fetch("/reorders", {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ strokes : signaturePad.toData() })

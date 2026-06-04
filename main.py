@@ -18,7 +18,7 @@ class SignaturePad(BaseModel):
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 g_signature_pad = None
-distance = 200.0
+distance = 50.0
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -30,17 +30,16 @@ async def read_root(request: Request):
 
 @app.post("/strokes")
 async def get_strokes(signature_pad: SignaturePad):
-    print(signature_pad)
     global g_signature_pad
     g_signature_pad = signature_pad
     collapse_strokes()
     return signature_pad
 
-@app.post("/merges")
-async def get_merges(signature_pad: SignaturePad):
+@app.post("/reorders")
+async def get_reorders(signature_pad: SignaturePad):
     global g_signature_pad
     g_signature_pad = signature_pad
-    merge_strokes()
+    reorder_strokes()
     return signature_pad
 
 @app.get("/output")
@@ -55,32 +54,52 @@ def collapse_strokes():
     if g_signature_pad is None or len(strokes) < 2:
         return
 
-    for i in range(1, len(strokes)):
+    for i in range(1, len(strokes)): # TODO: non-Pythonic!
         strokes[0]["points"].extend(strokes[1]["points"])
         strokes.pop(1)
 
-def merge_strokes():
+def reorder_strokes():
     global g_signature_pad, distance
     strokes = g_signature_pad.strokes
 
     if g_signature_pad is None or len(strokes) < 2:
         return
 
-    point = None
     points = []
+    pairs = []
 
-    for i in range(len(strokes)):
+    for i in range(len(strokes)): # TODO: un-Pythonic!
         point = strokes[i]["points"][0]
         points.append([point['x'], point['y']])
         point = strokes[i]["points"][-1]
         points.append([point['x'], point['y']])
 
     tree = KDTree(points)
-    index = 0
+    indices = 0
 
-    for point in points:
-        _, index = tree.query(point, 2)#, 1, 0.0, 2.0, distance)
-        print(index)
+    for point in points: # TODO: un-Pythonic!
+        _, indices = tree.query(point, 2, 0.0, 2.0, distance)
+        if (int(indices[1]) // 2 == 0):
+            pairs.append(len(strokes))
+        else:
+            pairs.append(int(indices[1]) // 2)
 
-    print(points)
-    return index
+    pairs = [pairs[i:i + 2] for i in range(0, len(pairs), 2)]
+
+    i = 0
+    while i < len(pairs) - 1:
+        mi = 0
+        pair = pairs[i]
+        if pair[0] > pair[1]:
+            mi = min(pairs[i])
+            if mi != i + 1:
+                temp = strokes[mi]
+                if pair[1] > pairs[mi][1]:
+                    temp['points'].reverse()
+                strokes.remove(temp)
+                strokes.insert(i + 1, temp)
+                i += 2
+                continue
+        i += 1
+
+    return indices
